@@ -7,33 +7,31 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-
-
+import br.com.alura.microservice.loja.client.FornecedorClient;
 import br.com.alura.microservice.loja.dto.CompraDTO;
 import br.com.alura.microservice.loja.dto.InfoFornecedorDTO;
+import br.com.alura.microservice.loja.dto.InfoPedidoDTO;
+import br.com.alura.microservice.loja.model.Compra;
 
 @Service
 public class CompraService {
 	
 	@Autowired
-	private RestTemplate client;
+	private FornecedorClient fornecedorClient;
 	
-	@Autowired
-	private DiscoveryClient eurekaClient;
-
-	public void realizaCompra(CompraDTO compra) {
+	public Compra realizaCompra(CompraDTO compra) {
 		
-		ResponseEntity<InfoFornecedorDTO> exchange = 
-				client.exchange("http://fornecedor/info/"+compra.getEndereco().getEstado(),
-				HttpMethod.GET, null, InfoFornecedorDTO.class);
+		InfoFornecedorDTO info = fornecedorClient.getInfoPorEstado(compra.getEndereco().getEstado());
 		
+		InfoPedidoDTO pedido = fornecedorClient.realizaPedido(compra.getItens());
+		System.out.println(info.getEndereco());
 		
-		eurekaClient.getInstances("Fornecedor").stream()
-			.forEach(fornecedor -> {
-				System.out.println("localhost:"+fornecedor.getPort());
-			});
+		Compra compraSalva = new Compra();
+		compraSalva.setPedidoId(pedido.getId());
+		compraSalva.setTempoDePreparo(pedido.getTempoDePreparo());
+		compraSalva.setEnderecoDestino(compra.getEndereco().toString());
 		
-		System.out.println(exchange.getBody().getEndereco());
+		return compraSalva;
 	}
 
 }
